@@ -1,8 +1,10 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+
 
 '''
 A Python-script to extract and organise highlights and notes from the "My Clippings.txt" file on a Kindle e-reader. 
-
 Usage: extract-kindle-clippings.py <My Clippings.txt file> [<output directory>]
 
 GIT-repository at: https://github.com/lvzon/kindle-clippings
@@ -21,6 +23,12 @@ GIT-repository at: https://github.com/lvzon/kindle-clippings
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+Slightly modified version by Michal Kašpárek (michalkasparek.cz), 2022
+
+    - output in markdown
+	- familiar with Czech characters and time/date format
+
 '''
 
 import re
@@ -30,6 +38,9 @@ import os
 from datetime import datetime, timedelta, timezone
 import getpass
 import sys
+import locale #MK
+locale.setlocale(locale.LC_ALL, 'cs_CZ')
+
 
 if len(sys.argv) > 1:
     infile = sys.argv[1]
@@ -109,7 +120,7 @@ for directory, subdirlist, filelist in os.walk(outpath):
 print('Found', len(existing_hashes), 'existing note hashes')
 print('Processing clippings file', infile)
         
-mc = open(infile, 'r')
+mc = open(infile, 'r', errors='ignore', encoding='utf-8-sig')
 
 mc.read(1)  # Skip first character
 
@@ -187,13 +198,16 @@ for key in pub_title.keys():
     short_title = title.split('|')[0]
     short_title = short_title.split(' - ')[0]
     short_title = short_title.split('. ')[0]
-    if len(short_title) > 128:
-        short_title = short_title[:127]
+    short_title = short_title.replace('?','')
+    short_title = short_title.replace(':','')
+    short_title = short_title.replace('*','')
+    if len(short_title) > 128: 
+        short_title = short_title[:127] 
     if (nr_notes > 2):
-        fname = author + ' - ' + short_title.strip() + '.rst'
+        fname = author + ' - ' + short_title.strip() + '.txt' # MK přípona exportovaných souborů 
         short = 0
     else:
-        fname = 'short_notes.rst'
+        fname = 'short_notes.txt'
         short = 1
 
     new_hashes = 0
@@ -210,7 +224,7 @@ for key in pub_title.keys():
         
     newfile = os.path.isfile(outfile)
     
-    out = open(outfile, 'a')
+    out = open(outfile, 'a', encoding='utf-16')
     
     if short:
         # Short note, output a small header and append to short note file
@@ -222,16 +236,18 @@ for key in pub_title.keys():
         out.write(('-' * len(titlestr)) + '\n\n')
     elif not newfile:
         # Many notes, output with header and metadata in a separate file
-        titlestr = 'Highlights from ' + title
+        titlestr = title + ' (' + author + ')' 
         out.write(titlestr + '\n')
         out.write(('=' * len(titlestr)) + '\n\n')
-        if author != 'Unknown':
-            out.write(':authors: ' + author + '\n\n')
+        #MK if author != 'Unknown':
+        #MK    out.write(':authors: ' + author + '\n\n')
             
     last_date = datetime.now()
     
     for note_hash in pub_hashes[key]:
         note = notes[note_hash]
+ #MK       note = note.encode('utf-16')
+ #MK       note = note.decode('utf-16')
         note_type = types[note_hash]
         note_date = dates[note_hash]
         note_loc = locations[note_hash]
@@ -240,13 +256,14 @@ for key in pub_title.keys():
         else:
             print('Adding new note to', outfile + ':', note_hash, note_type, note_loc, note_date)
             
-            comment = str(commentstr + note_hash + ' ; ' + note_type + ' ; ' + note_loc + ' ; ' + note_date)
-            
-            if short:
-                comment += ' ; ' + author + ' ; ' + title
+            #MK comment = str(commentstr + note_hash + ' ; ' + note_type + ' ; ' + note_loc + ' ; ' + note_date)
+            #MK comment = str('***')
+			
+            #MK            if short:
+            #MK    comment += ' ; ' + author + ' ; ' + title
                 
-            out.write(comment + '\n\n')
-            out.write(note + '\n\n')
+            #MK out.write(comment + '\n\n')
+            out.write('> ' + note + ' (' + note_date +') \n\n')
         try:
             last_date = parse(note_date)
         except:
@@ -262,5 +279,3 @@ for key in pub_title.keys():
         epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
     note_timestamp = (last_date - epoch) / timedelta(seconds=1)    
     os.utime(outfile, (note_timestamp, note_timestamp))
-    
-
