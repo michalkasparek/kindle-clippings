@@ -27,7 +27,7 @@ GIT-repository at: https://github.com/lvzon/kindle-clippings
 Slightly modified version by Michal Kašpárek (michalkasparek.cz), 2022
 
     - output in markdown
-	- familiar with Czech characters and time/date format
+    - familiar with Czech characters and time/date format
 
 '''
 
@@ -279,3 +279,5 @@ for key in pub_title.keys():
         epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
     note_timestamp = (last_date - epoch) / timedelta(seconds=1)    
     os.utime(outfile, (note_timestamp, note_timestamp))
+    
+
